@@ -1,0 +1,143 @@
+<nz-card class="box">
+    <div nz-row [nzGutter]="[24,24]" [nzAlign]="'middle'">
+        <div nz-col nzSpan="8" style="text-align: start;">
+            <h1>
+                <b>Job No : </b><br>
+                <span class="color">#{{job_card.job_card_id}}</span>
+            </h1>
+        </div>
+        <div nz-col nzSpan="8" style="text-align: center;">
+            <h1>
+                <b>JOB Card</b>
+            </h1>
+            <!-- <h3 style="color:gray;">
+                Expected Completion Date :
+                <nz-date-picker style="display: inline-block;" [(ngModel)]="completionDate" nzFormat="yyyy-MM-dd" placeholder="Select Date"></nz-date-picker>
+            </h3> -->
+        </div>
+        <div nz-col nzSpan="8" style="text-align: end;">
+            <h1><b>Status </b><br>
+                <nz-tag style="margin-left: 5px;vertical-align: middle;" [nzColor]="'cyan'" *ngIf="job_card.job_card_status_id == 5">Pending</nz-tag>
+                <nz-tag style="margin-left: 5px;vertical-align: middle;" [nzColor]="'orange'" *ngIf="job_card.job_card_status_id == 1">Processing</nz-tag>
+                <nz-tag style="margin-left: 5px;vertical-align: middle;" [nzColor]="'green'" *ngIf="job_card.job_card_status_id == 2">Completed</nz-tag>
+                <nz-tag style="margin-left: 5px;vertical-align: middle;" [nzColor]="'red'" *ngIf="job_card.job_card_status_id == 3">Cancelled</nz-tag>
+            </h1>
+        </div>
+    </div>
+
+    <hr class="hr">
+    <br>
+
+    <div nz-row [nzJustify]="'center'" [nzGutter]="[24,24]" [nzAlign]="'middle'">
+        <div nz-col nzSpan="12" style="text-align: start;border-right:  1px solid var(--primary-color);">
+            <h2>
+                <b>{{ job_card.quotation?.job_request?.title | titlecase }}</b>
+                <span style="float: inline-end;">
+                <b >Quantity : </b> <span class="color">{{ job_card.quotation?.job_request?.quantity }}</span>
+                </span>
+            </h2>
+            <p>
+                {{ job_card.quotation?.job_request?.description }}
+            </p>
+        </div>
+        <div nz-col nzSpan="12" style="text-align: start;">
+            <img nz-image *ngFor="let image of job_card.quotation?.job_request?.job_request_items" [nzSrc]="image.item_url" class="request_image" />
+        </div>
+    </div>
+
+    <br>
+    <br>
+
+    <div nz-row [nzJustify]="'center'" [nzGutter]="[24,24]" [nzAlign]="'top'">
+        <div nz-col nzSpan="8">
+            <nz-list nzBordered style="text-align: center;">
+                <nz-list-header class="list-header">
+                    <b>Materials</b>
+                </nz-list-header>
+                <nz-list-item *ngFor="let material of materials">
+                    <span nz-typography>
+                      <b>{{ material.material_name }}</b>
+                    </span>
+                </nz-list-item>
+                <nz-list-item *ngIf="materials.length === 0" style="text-align: center;">
+                    <span>No materials assigned</span>
+                </nz-list-item>
+            </nz-list>
+        </div>
+        <div nz-col nzSpan="8">
+            <nz-list nzBordered>
+                <nz-list-header class="list-header">
+                    <b>Artisans</b>
+                </nz-list-header>
+                <nz-list-item *ngFor="let item of job_card.job_card_artisans">
+                    <span nz-typography>
+                      <nz-avatar nzIcon="user" [nzSrc]="item.employee.user?.image || 'https://ui-avatars.com/api/?background=17726d&color=fff&&name='+ item.employee.user?.name"></nz-avatar>
+                      <b style="margin-left: 5px;">{{ item.employee.user?.name + ' ' + item.employee.user?.surname}}</b><br>
+                      <small>
+                        {{item.employee.job_scope}}
+                      </small>
+                    </span>
+                </nz-list-item>
+                <nz-list-item *ngIf="!job_card.job_card_artisans || job_card.job_card_artisans.length === 0" style="text-align: center;">
+                    <span>No artisans assigned</span>
+                </nz-list-item>
+            </nz-list>
+        </div>
+        <!-- <div nz-col nzSpan="8">
+            <nz-list nzBordered>
+                <nz-list-header class="list-header">
+                    <b>Progress Content</b>
+                </nz-list-header>
+                <nz-list-item>
+                    <nz-upload style="width: 100%;" nzType="drag" [nzMultiple]="false" [nzBeforeUpload]="beforeUpload" [(nzFileList)]="fileList" nzAccept=".pdf">
+                        <p class="ant-upload-drag-icon">
+                            <span nz-icon nzType="inbox"></span>
+                        </p>
+                        <p class="ant-upload-text">Upload Content Here</p>
+                    </nz-upload>
+                </nz-list-item>
+            </nz-list>
+        </div> -->
+    </div>
+
+    <br>
+    <hr class="hr">
+    <br>
+
+  <div nz-col nzSpan="8" style="text-align: end;">
+    <nz-space nzSize="middle">
+      <!-- Mark Completed button, only if status is 1 -->
+      <button nz-button nzType="primary" nzShape="round"
+        (click)="openMarkCompleted()"
+        *ngIf="job_card.job_card_status_id == 1">
+        <span nz-icon nzType="check" nzTheme="outline"></span>
+        Mark Completed
+      </button>
+      <br>
+
+      <!-- View Quote button -->
+      <button nz-button nzType="primary" (click)="viewQuote()">
+        <i nz-icon nzType="file-text" nzTheme="outline"></i>
+        View Quote
+      </button>
+      <br>
+
+      <!-- View Invoice button, only if invoice exists -->
+      <button nz-button nzType="primary" (click)="viewInvoice()"
+              *ngIf="invoiceUrl">
+        <i nz-icon nzType="file-protect" nzTheme="outline"></i>
+        View Invoice
+      </button>
+      <br>
+
+
+      <!-- Progress Images button, only if status is 1 -->
+      <button nz-button nzType="default" (click)="openProgressImages()"
+        *ngIf="job_card.job_card_status_id == 1 && job_card.quotation?.job_request?.progress_url">
+        <i nz-icon nzType="picture" nzTheme="outline"></i>
+        View Progress
+      </button>
+    </nz-space>
+  </div>
+
+</nz-card>

@@ -1,0 +1,551 @@
+<!-- Main Stock View Header -->
+<div nz-row [nzJustify]="'center'">
+  <div nz-col [nzSpan]="!showStockView && !showCreateView && !showUpdateView && !showStructureView ? 22 : 18" style="text-align: start;">
+    <h1 *ngIf="!showStockView && !showCreateView && !showUpdateView && !showStructureView"><b>Stock Management</b></h1>
+    <button nz-button nzType="default" *ngIf="showStockView || showCreateView || showUpdateView || showStructureView" (click)="handleFormClose()">
+      <span nz-icon nzType="arrow-left" nzTheme="outline"></span>
+      Back to Stock Dashboard
+    </button>
+  </div>
+</div>
+
+<!-- Action Buttons (Only show on main view) -->
+<div nz-row nzJustify="end" class="mb-3" *ngIf="!showStockView && !showCreateView && !showUpdateView && !showStructureView">
+  <div nz-col>
+    <!-- Stock Structure Button -->
+    <button nz-button nzType="default" (click)="showStructure()" style="margin-right: 8px;">
+      <span nz-icon nzType="apartment" nzTheme="outline"></span>
+      Stock Structure
+    </button>
+
+    <!-- Material Export Button -->
+    <button nz-button nzType="primary" (click)="exportMaterialToExcel()" style="margin-right: 8px;">
+      <span nz-icon nzType="export" nzTheme="outline"></span>
+      Export Materials
+    </button>
+
+    <!-- Material Import Button -->
+    <button nz-button nzType="default" (click)="fileInput.click()" style="margin-right: 8px;">
+      <span nz-icon nzType="import" nzTheme="outline"></span>
+      Import Materials
+    </button>
+
+    <!-- Hidden file input -->
+    <input #fileInput
+           type="file"
+           accept=".xlsx, .xls"
+           (change)="importMaterialExcel($event)"
+           hidden>
+  </div>
+</div>
+
+<!-- Import Result Alert -->
+<div nz-row *ngIf="importResult">
+  <div nz-col nzSpan="24">
+    <nz-alert [nzType]="importResult.success ? 'success' : 'error'"
+              [nzMessage]="importResult.message"
+              [nzDescription]="importResult.description"
+              nzShowIcon
+              [nzCloseable]="true"
+              (nzOnClose)="closeImportAlert()">
+    </nz-alert>
+  </div>
+</div>
+
+
+
+
+<div nz-row [nzJustify]="'center'" *ngIf="!showStockView && !showCreateView && !showUpdateView && !showStructureView">
+  <div nz-col nzSpan="24">
+    <nz-tabset nzType="card">
+
+      <!-- Low Stock Tab -->
+      <nz-tab [nzTitle]="'Low Stock (<50)'">
+        <nz-spin [nzSpinning]="isLoading">
+          <nz-table #lowStockTable [nzData]="lowStock" [nzPageSize]="20">
+            <thead>
+              <tr>
+                <th colspan="8">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <nz-input-group [nzSuffix]="suffixIconSearch" style="max-width: 300px;">
+                      <input type="text" nz-input placeholder="Search low stock"
+                             (keyup)="searchLowStock($event)" />
+                    </nz-input-group>
+                    <button nz-button nzType="primary" (click)="openCreateView()">Create</button>
+                  </div>
+                  <ng-template #suffixIconSearch>
+                    <i nz-icon nzType="search"></i>
+                  </ng-template>
+                </th>
+              </tr>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Material</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Stock Level</th>
+                <th>View</th>
+                <th>Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of lowStockTable.data"
+                  [class.critical-stock]="item.stock_level <= 10">
+                <td><b>#{{item.stock_id}}</b></td>
+                <td>
+                  <b>{{item.name}}</b><br>
+                  <span class="text-muted">{{item.description || 'No description'}}</span>
+                </td>
+                <td>{{item.material?.material_name || 'N/A'}}</td>
+                <td>{{item.stock_type?.type_name || 'N/A'}}</td>
+                <td>{{item.stock_category?.category_name || 'N/A'}}</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <nz-tag [nzColor]="'red'">{{item.stock_level}}</nz-tag>
+                    <span *ngIf="item.stock_level <= 10" style="color: #ff4d4f;">
+                      <i nz-icon nzType="warning" nzTheme="fill"></i>
+                      Critical level!
+                    </span>
+                  </div>
+                </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="primary" (click)="viewStock(item)">
+                      <i nz-icon nzType="eye" nzTheme="outline"></i>
+                    </button>
+                  </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="default" (click)="openUpdateView(item)">
+                      <i nz-icon nzType="edit" nzTheme="outline"></i>
+                    </button>
+                  </td>
+              </tr>
+            </tbody>
+          </nz-table>
+        </nz-spin>
+      </nz-tab>
+
+      <!-- Medium Stock Tab -->
+      <nz-tab [nzTitle]="'Medium Stock (50-249)'">
+        <nz-spin [nzSpinning]="isLoading">
+          <nz-table #mediumStockTable [nzData]="mediumStock" [nzPageSize]="20">
+            <thead>
+              <tr>
+                <th colspan="8">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <nz-input-group [nzSuffix]="suffixIconSearch" style="max-width: 300px;">
+                      <input type="text" nz-input placeholder="Search medium stock"
+                             (keyup)="searchMediumStock($event)" />
+                    </nz-input-group>
+                    <button nz-button nzType="primary" (click)="openCreateView()">Create</button>
+                  </div>
+                  <ng-template #suffixIconSearch>
+                    <i nz-icon nzType="search"></i>
+                  </ng-template>
+                </th>
+              </tr>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Material</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Stock Level</th>
+                <th>View</th>
+                <th>Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of mediumStockTable.data">
+                <td><b>#{{item.stock_id}}</b></td>
+                <td>
+                  <b>{{item.name}}</b><br>
+                  <span class="text-muted">{{item.description || 'No description'}}</span>
+                </td>
+                <td>{{item.material?.material_name || 'N/A'}}</td>
+                <td>{{item.stock_type?.type_name || 'N/A'}}</td>
+                <td>{{item.stock_category?.category_name || 'N/A'}}</td>
+                <td>
+                  <nz-tag [nzColor]="'orange'">{{item.stock_level}}</nz-tag>
+                </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="primary" (click)="viewStock(item)">
+                      <i nz-icon nzType="eye" nzTheme="outline"></i>
+                    </button>
+                  </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="default" (click)="openUpdateView(item)">
+                      <i nz-icon nzType="edit" nzTheme="outline"></i>
+                    </button>
+                  </td>
+              </tr>
+            </tbody>
+          </nz-table>
+        </nz-spin>
+      </nz-tab>
+
+      <!-- High Stock Tab -->
+      <nz-tab [nzTitle]="'High Stock (250+)'">
+        <nz-spin [nzSpinning]="isLoading">
+          <nz-table #highStockTable [nzData]="highStock" [nzPageSize]="20">
+            <thead>
+              <tr>
+                <th colspan="8">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <nz-input-group [nzSuffix]="suffixIconSearch" style="max-width: 300px;">
+                      <input type="text" nz-input placeholder="Search high stock"
+                             (keyup)="searchHighStock($event)" />
+                    </nz-input-group>
+                    <button nz-button nzType="primary" (click)="openCreateView()">Create</button>
+                  </div>
+                  <ng-template #suffixIconSearch>
+                    <i nz-icon nzType="search"></i>
+                  </ng-template>
+                </th>
+              </tr>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Material</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Stock Level</th>
+                <th>View</th>
+                <th>Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of highStockTable.data">
+                <td><b>#{{item.stock_id}}</b></td>
+                <td>
+                  <b>{{item.name}}</b><br>
+                  <span class="text-muted">{{item.description || 'No description'}}</span>
+                </td>
+                <td>{{item.material?.material_name || 'N/A'}}</td>
+                <td>{{item.stock_type?.type_name || 'N/A'}}</td>
+                <td>{{item.stock_category?.category_name || 'N/A'}}</td>
+                <td>
+                  <nz-tag [nzColor]="'green'">{{item.stock_level}}</nz-tag>
+                </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="primary" (click)="viewStock(item)">
+                      <i nz-icon nzType="eye" nzTheme="outline"></i>
+                    </button>
+                  </td>
+                  <td style="display; flex; gap: 8px;">
+                    <button nz-button nzType="default" (click)="openUpdateView(item)">
+                      <i nz-icon nzType="edit" nzTheme="outline"></i>
+                    </button>
+                  </td>
+              </tr>
+            </tbody>
+          </nz-table>
+        </nz-spin>
+      </nz-tab>
+    </nz-tabset>
+    <button nz-button nzType="default" (click)="openHelpModal()" style="float: right; margin-left: 8px;">
+      <i nz-icon nzType="question-circle" nzTheme="outline"></i> Help
+    </button>
+  </div>
+</div>
+
+<!-- Stock View -->
+<div nz-row [nzJustify]="'center'" *ngIf="showStockView">
+  <div nz-col [nzSpan]="18">
+    <br>
+    <app-stock-view [stock_item]="viewStockItem!" (closeView)="handleFormClose()"></app-stock-view>
+  </div>
+</div>
+
+<!-- Create Stock View -->
+<div nz-row [nzJustify]="'center'" *ngIf="showCreateView">
+  <div nz-col [nzSpan]="18">
+    <br>
+    <app-create-stock (closeForm)="handleFormClose()" [preselectedTypeId]="preselectedTypeId"></app-create-stock>
+  </div>
+</div>
+
+<!-- Update Stock View -->
+<div nz-row [nzJustify]="'center'" *ngIf="showUpdateView">
+  <div nz-col [nzSpan]="18">
+    <br>
+    <app-update-stock
+      *ngIf="stockToUpdate"
+      [stockData]="stockToUpdate"
+      (closeForm)="handleFormClose()"
+      (updateSuccess)="handleStockUpdate($event)">
+    </app-update-stock>
+  </div>
+</div>
+
+
+<!-- Stock Help Modal -->
+<nz-modal
+  [nzWidth]="800"
+  [(nzVisible)]="showHelp"
+  nzClosable="true"
+  [nzTitle]="helpTitle"
+  (nzOnCancel)="showHelp=false"
+  [nzFooter]="null">
+
+  <ng-template #helpTitle>
+    <span nz-icon nzType="question-circle" nzTheme="outline" style="margin-right: 8px; color: #17726d;"></span>
+    <b>Stock Management Help Center</b>
+  </ng-template>
+
+  <ng-container *nzModalContent>
+    <div nz-row [nzJustify]="'center'" [nzGutter]="[24,24]">
+      <div nz-col [nzSpan]="24">
+        <div class="help-content">
+          <h2>Stock Inventory System</h2>
+          <p>This page allows you to monitor and manage all inventory items categorized by stock levels, with tools for creating, updating, and bulk importing/exporting stock data.</p>
+        </div>
+
+        <div class="help-section">
+          <h3><i nz-icon nzType="appstore" nzTheme="outline" style="margin-right: 8px;"></i> Key Features</h3>
+
+          <div class="feature">
+            <h4><i nz-icon nzType="profile" nzTheme="outline" style="margin-right: 8px;"></i> Stock Level Tracking</h4>
+            <ul>
+              <li><nz-tag [nzColor]="'red'">Low Stock (<50)</nz-tag> - Items needing urgent replenishment</li>
+              <li><nz-tag [nzColor]="'orange'">Medium Stock (50-249)</nz-tag> - Adequate but monitor closely</li>
+              <li><nz-tag [nzColor]="'green'">High Stock (250+)</nz-tag> - Well-stocked items</li>
+              <li><nz-tag [nzColor]="'volcano'">Critical Level (≤10)</nz-tag> - Highlighted with warning icon</li>
+            </ul>
+          </div>
+
+          <div class="feature">
+            <h4><i nz-icon nzType="search" nzTheme="outline" style="margin-right: 8px;"></i> Search & Filter</h4>
+            <p>Quickly find inventory items by:</p>
+            <ul>
+              <li>Stock ID</li>
+              <li>Item name or description</li>
+              <li>Material type</li>
+              <li>Category</li>
+              <li>Stock level range</li>
+            </ul>
+          </div>
+
+          <div class="feature">
+            <h4><i nz-icon nzType="swap" nzTheme="outline" style="margin-right: 8px;"></i> Bulk Operations</h4>
+            <ul>
+              <li><strong>Export to Excel</strong> - Download current inventory data</li>
+              <li><strong>Import from Excel</strong> - Bulk update stock levels</li>
+              <li><strong>Create New Items</strong> - Add individual stock entries</li>
+              <li><strong>Update Existing</strong> - Modify stock details and quantities</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3><i nz-icon nzType="question-circle" nzTheme="outline" style="margin-right: 8px;"></i> How to Use</h3>
+
+          <div class="usage-step">
+            <h4><i nz-icon nzType="eye" nzTheme="outline" style="margin-right: 8px;"></i> Viewing Stock Details</h4>
+            <ol>
+              <li>Click the <button nz-button nzType="primary" nzSize="small"><i nz-icon nzType="eye" nzTheme="outline"></i></button> action button</li>
+              <li>The detailed stock view will show complete item information</li>
+              <li>Review all specifications, history, and related data</li>
+              <li>Click <strong>Back to Stock</strong> to return to the list</li>
+            </ol>
+          </div>
+
+          <div class="usage-step">
+            <h4><i nz-icon nzType="plus" nzTheme="outline" style="margin-right: 8px;"></i> Creating New Stock Items</h4>
+            <ol>
+              <li>Click the <button nz-button nzType="primary" nzSize="small">Create</button> button in any tab</li>
+              <li>Fill in all required item details</li>
+              <li>Set the initial stock level</li>
+              <li>Click <strong>Submit</strong> to add to inventory</li>
+            </ol>
+          </div>
+
+          <div class="usage-step">
+            <h4><i nz-icon nzType="edit" nzTheme="outline" style="margin-right: 8px;"></i> Updating Stock Items</h4>
+            <ol>
+              <li>Click the <button nz-button nzType="default" nzSize="small"><i nz-icon nzType="edit" nzTheme="outline"></i></button> action button</li>
+              <li>Modify any fields as needed (quantity, details, etc.)</li>
+              <li>Click <strong>Update</strong> to save changes</li>
+              <li>Changes will reflect immediately in the appropriate stock level tab</li>
+            </ol>
+          </div>
+
+          <div class="usage-step">
+            <h4><i nz-icon nzType="file-excel" nzTheme="outline" style="margin-right: 8px;"></i> Importing/Exporting Data</h4>
+            <ol>
+              <li><strong>Export:</strong> Click <button nz-button nzType="primary" nzSize="small"><i nz-icon nzType="export" nzTheme="outline"></i> Export</button> to download current data</li>
+              <li><strong>Import:</strong> Click <button nz-button nzType="default" nzSize="small"><i nz-icon nzType="import" nzTheme="outline"></i> Import</button> and select your Excel file</li>
+              <li>The system will validate and process the import</li>
+              <li>Check the status alert for results</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="help-section troubleshooting">
+          <h3><i nz-icon nzType="exclamation-circle" nzTheme="outline" style="margin-right: 8px;"></i> Troubleshooting</h3>
+          <div class="warning">
+            <p><strong>Import failed?</strong> Ensure your Excel file matches the required format</p>
+            <p><strong>Can't update stock?</strong> Verify you have proper permissions</p>
+            <p><strong>Item not showing?</strong> Check if it's filtered or in a different stock level tab</p>
+            <p><strong>Critical items not highlighted?</strong> Refresh the page to ensure latest data</p>
+          </div>
+          <p>For further assistance, contact your inventory system administrator.</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</nz-modal>
+
+<!-- Stock Structure View -->
+<div nz-row [nzJustify]="'center'" *ngIf="showStructureView">
+  <div nz-col [nzSpan]="24">
+    <div class="structure-header">
+      <h2>Stock Structure Overview</h2>
+      <p>Manage your inventory hierarchy with categories, types, and individual stock items</p>
+    </div>
+
+    <nz-card class="structure-card">
+      <div nz-row>
+        <div nz-col nzSpan="24">
+          <nz-spin [nzSpinning]="isLoadingStructure">
+            <div class="tree-view">
+              <ul>
+                <li *ngFor="let category of stockStructure">
+                  <div class="tree-node category">
+                    <span (click)="toggleCategory(category)" class="toggle-icon">
+                      <i nz-icon [nzType]="category.expanded ? 'minus-square' : 'plus-square'" nzTheme="outline"></i>
+                    </span>
+                    <i nz-icon nzType="folder-open" nzTheme="outline" class="node-icon"></i>
+                    <span class="node-title">{{ category.title }}</span>
+                    <div class="node-actions">
+                      <button nz-button nzType="default" nzSize="small" (click)="addType(category)" nz-tooltip="Add Type">
+                        <i nz-icon nzType="plus" nzTheme="outline"></i>
+                      </button>
+                      <button nz-button nzType="default" nzSize="small" (click)="editCategory(category)" nz-tooltip="Edit">
+                        <i nz-icon nzType="edit" nzTheme="outline"></i>
+                      </button>
+                      <button nz-button nzType="default" nzSize="small" (click)="deleteCategory(category)" nz-tooltip="Delete">
+                        <i nz-icon nzType="delete" nzTheme="outline"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <ul *ngIf="category.expanded">
+                    <li *ngFor="let type of category.children">
+                      <div class="tree-node type">
+                        <span (click)="toggleType(type)" class="toggle-icon">
+                          <i nz-icon [nzType]="type.expanded ? 'minus-square' : 'plus-square'" nzTheme="outline"></i>
+                        </span>
+                        <i nz-icon nzType="folder" nzTheme="outline" class="node-icon"></i>
+                        <span class="node-title">{{ type.title }}</span>
+                        <div class="node-actions">
+                          <button nz-button nzType="default" nzSize="small" (click)="openCreateViewWithType(type)" nz-tooltip="Add Stock">
+                            <i nz-icon nzType="plus" nzTheme="outline"></i>
+                          </button>
+                          <button nz-button nzType="default" nzSize="small" (click)="editType(type)" nz-tooltip="Edit">
+                            <i nz-icon nzType="edit" nzTheme="outline"></i>
+                          </button>
+                          <button nz-button nzType="default" nzSize="small" (click)="deleteType(type)" nz-tooltip="Delete">
+                            <i nz-icon nzType="delete" nzTheme="outline"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <ul *ngIf="type.expanded">
+                        <li *ngFor="let stock of type.children">
+                          <div class="tree-node stock">
+                            <span class="toggle-icon"></span>
+                            <i nz-icon nzType="file" nzTheme="outline" class="node-icon"></i>
+                            <span class="node-title">{{ stock.title }}</span>
+                            <div class="node-actions">
+                            <button nz-button nzType="default" nzSize="small" (click)="viewStockFromStructure(stock.stock)" nz-tooltip="View">
+                              <i nz-icon nzType="eye" nzTheme="outline"></i>
+                            </button>
+                            <button nz-button nzType="default" nzSize="small" (click)="openUpdateViewFromStructure(stock.stock)" nz-tooltip="Edit">
+                              <i nz-icon nzType="edit" nzTheme="outline"></i>
+                            </button>
+                              <button nz-button nzType="default" nzSize="small" (click)="deleteStock(stock)" nz-tooltip="Delete">
+                                <i nz-icon nzType="delete" nzTheme="outline"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                        <li *ngIf="type.children.length === 0">
+                          <span class="tree-node empty">
+                            <span class="toggle-icon"></span>
+                            <i nz-icon nzType="file-exclamation" nzTheme="outline"></i>
+                            No items in this type
+                          </span>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </nz-spin>
+        </div>
+      </div>
+    </nz-card>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<nz-modal
+  [(nzVisible)]="showCategoryModal"
+  [nzTitle]="editingCategory ? 'Edit Category' : 'Add Category'"
+  (nzOnCancel)="showCategoryModal = false"
+  (nzOnOk)="saveCategory()">
+  <div *nzModalContent>
+    <nz-form-item>
+      <nz-form-label>Category Name</nz-form-label>
+      <nz-form-control>
+        <input nz-input [(ngModel)]="newCategoryName" placeholder="Enter category name">
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+</nz-modal>
+
+<!-- Type Modal -->
+<nz-modal
+  [(nzVisible)]="showTypeModal"
+  [nzTitle]="editingType ? 'Edit Type' : 'Add Type'"
+  (nzOnCancel)="showTypeModal = false"
+  (nzOnOk)="saveType()">
+  <div *nzModalContent>
+    <nz-form-item>
+      <nz-form-label>Type Name</nz-form-label>
+      <nz-form-control>
+        <input nz-input [(ngModel)]="newTypeName" placeholder="Enter type name">
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>Category</nz-form-label>
+      <nz-form-control>
+        <nz-select [(ngModel)]="selectedCategoryId" nzPlaceHolder="Select category">
+          <nz-option *ngFor="let category of stockCategories"
+                    [nzValue]="category.stock_category_id"
+                    [nzLabel]="category.category_name">
+          </nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+</nz-modal>
+
+<!-- Move Confirmation Modal -->
+<nz-modal
+  [(nzVisible)]="showMoveConfirm"
+  [nzTitle]="moveAction === 'type' ? 'Confirm Type Move' : 'Confirm Stock Move'"
+  (nzOnCancel)="cancelMove()"
+  (nzOnOk)="confirmMove()">
+  <div *nzModalContent>
+    <p *ngIf="moveAction === 'type'">
+      Are you sure you want to move the type "<strong>{{movingType?.title}}</strong>"
+      to the category "<strong>{{moveTarget?.category_name}}</strong>"?
+    </p>
+    <p *ngIf="moveAction === 'stock'">
+      Are you sure you want to move the stock item "<strong>{{movingStock?.title}}</strong>"
+      to the type "<strong>{{moveTarget?.type_name}}</strong>"?
+    </p>
+    <p class="text-warning"><i nz-icon nzType="warning" nzTheme="outline"></i> This action cannot be undone.</p>
+  </div>
+</nz-modal>

@@ -1,0 +1,196 @@
+<div nz-row [nzJustify]="'center'">
+  <div nz-col [nzSpan]="!showCreateForm ? 22 : 18" style="text-align: start;">
+    <h1 *ngIf="!showCreateForm"><b>Patterns</b></h1>
+
+    <button *ngIf="showCreateForm" nz-button nzType="default" (click)="handleFormClose()">
+      <span nz-icon nzType="arrow-left" nzTheme="outline"></span> Back to Patterns
+    </button>
+  </div>
+</div>
+
+<!-- Patterns List View -->
+<div nz-row [nzJustify]="'center'" *ngIf="!showCreateForm">
+  <div nz-col nzSpan="22">
+    <nz-spin [nzSpinning]="isLoading">
+
+      <!-- Error message -->
+      <div *ngIf="errorMessage" class="error-message">
+        <nz-alert nzType="error" [nzMessage]="errorMessage" nzShowIcon></nz-alert>
+        <button nz-button nzType="primary" (click)="loadPatterns()" style="margin-top: 16px;">
+          <i nz-icon nzType="reload"></i> Retry
+        </button>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading && !errorMessage && patterns.length === 0" class="empty-state">
+        <nz-empty nzNotFoundContent="No patterns found"></nz-empty>
+      </div>
+
+      <!-- Table -->
+      <div *ngIf="!isLoading && patterns.length > 0">
+        <nz-table #patternsTable [nzData]="patterns" [nzPageSize]="20" nzSize="middle">
+          <thead>
+            <tr>
+              <th colSpan="4">
+                <nz-input-group [nzSuffix]="suffixIconSearch">
+                  <input type="text" nz-input placeholder="Search patterns..." (keyup)="searchPatterns($event)" />
+                </nz-input-group>
+                <ng-template #suffixIconSearch>
+                  <i nz-icon nzType="search"></i>
+                </ng-template>
+              </th>
+            </tr>
+            <tr>
+              <th>ID</th>
+              <th>Pattern Type</th>
+              <th>Design</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let pattern of patternsTable.data">
+              <td><b>#{{pattern.pattern_id}}</b></td>
+              <td>{{pattern.pattern_type?.type_name || 'N/A'}}</td>
+              <td><div class="truncate-cell">{{pattern.design || 'No design available'}}</div></td>
+              <td>
+                <button
+                  nz-button
+                  nzType="default"
+                  nzDanger
+                  nzSize="small"
+                  (click)="deletePattern(pattern)"
+                  [nzLoading]="pattern.pattern_id !== undefined && isDeleting[pattern.pattern_id]"
+                >
+                  <i nz-icon nzType="delete" nzTheme="outline"></i> Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+
+    </nz-spin>
+
+    <button nz-button (click)="showHelpModal()" style="margin-top: 16px;">
+      <span nz-icon nzType="question-circle" nzTheme="outline"></span> Get Help
+    </button>
+  </div>
+</div>
+
+<!-- Create Form Section -->
+<div nz-row [nzJustify]="'center'" *ngIf="showCreateForm">
+  <div nz-col [nzSpan]="18">
+    <nz-card>
+      <app-create-pattern
+        [patternTypes]="patternTypes"
+        (closeForm)="handleFormClose()"
+        (patternCreated)="handlePatternCreated()">
+      </app-create-pattern>
+    </nz-card>
+  </div>
+</div>
+
+
+
+
+<!-- Admin help -->
+<nz-modal
+  [nzWidth]="800"
+  [(nzVisible)]="showHelp"
+  nzClosable="true"
+  [nzTitle]="helpTitle"
+  (nzOnCancel)="showHelp=false"
+  [nzFooter]="null">
+
+  <ng-template #helpTitle>
+    <span nz-icon nzType="question-circle" nzTheme="outline" style="margin-right: 8px; color: #17726d;"></span>
+    <b>Help Center</b>
+  </ng-template>
+
+  <ng-container *nzModalContent>
+    <div nz-row [nzJustify]="'center'" [nzGutter]="[24,24]">
+      <div nz-col [nzSpan]="24">
+        <div class="help-content">
+          <h2>Patterns Help</h2>
+    <p>This page allows you to manage and organize your design patterns for efficient job processing.</p>
+  </div>
+
+  <div class="help-section">
+    <h3><i nz-icon nzType="appstore" nzTheme="outline" style="margin-right: 8px;"></i> Key Features</h3>
+
+    <div class="feature">
+      <h4><i nz-icon nzType="database" nzTheme="outline" style="margin-right: 8px;"></i> Pattern Catalog</h4>
+      <ul>
+        <li>View all available patterns in your system</li>
+        <li>Organized by pattern types for easy navigation</li>
+        <li>Quick access to design specifications</li>
+      </ul>
+    </div>
+
+    <div class="feature">
+      <h4><i nz-icon nzType="search" nzTheme="outline" style="margin-right: 8px;"></i> Search & Filter</h4>
+      <p>Quickly find patterns by:</p>
+      <ul>
+        <li>Pattern ID</li>
+        <li>Design name/description</li>
+        <li>Pattern type</li>
+        <li>Creation date</li>
+      </ul>
+    </div>
+
+    <div class="feature">
+      <h4><i nz-icon nzType="tool" nzTheme="outline" style="margin-right: 8px;"></i> Pattern Management</h4>
+      <ul>
+        <li><strong>Create New Patterns</strong> - Add new design patterns to your catalog</li>
+        <li><strong>View Pattern Details</strong> - See all pattern specifications</li>
+        <li><strong>Organize by Type</strong> - Categorize patterns for better workflow</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="help-section">
+    <h3><i nz-icon nzType="question-circle" nzTheme="outline" style="margin-right: 8px;"></i> How to Use</h3>
+
+      <div class="usage-step">
+        <h4><i nz-icon nzType="delete" nzTheme="outline" style="margin-right: 8px;"></i> Deleting Patterns</h4>
+        <ol>
+          <li>Locate the pattern in the table</li>
+          <li>Click <button nz-button nzType="default" nzDanger nzSize="small"><i nz-icon nzType="delete" nzTheme="outline"></i> Delete</button></li>
+          <li>Confirm deletion in the dialog</li>
+        </ol>
+      </div>
+
+    <div class="usage-step">
+      <h4><i nz-icon nzType="search" nzTheme="outline" style="margin-right: 8px;"></i> Finding Patterns</h4>
+      <ol>
+        <li>Use the search bar at the top of the table</li>
+        <li>Type any search term (ID, name, type, etc.)</li>
+        <li>Results will filter automatically as you type</li>
+        <li>Clear the search to see all patterns again</li>
+      </ol>
+    </div>
+
+    <div class="usage-step">
+      <h4><i nz-icon nzType="eye" nzTheme="outline" style="margin-right: 8px;"></i> Viewing Pattern Details</h4>
+      <ol>
+        <li>Browse through the patterns table</li>
+        <li>Each row shows key pattern information</li>
+        <li>Use the scrollbar to see all columns</li>
+        <li>Click on a pattern to view full details</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="help-section troubleshooting">
+    <h3><i nz-icon nzType="exclamation-circle" nzTheme="outline" style="margin-right: 8px;"></i> Troubleshooting</h3>
+    <div class="warning">
+      <p><strong>Can't find a pattern?</strong> Try different search terms or check filters</p>
+      <p><strong>Patterns not loading?</strong> Click the <button nz-button nzType="default" nzSize="small"><i nz-icon nzType="reload"></i> Retry</button> button</p>
+      <p><strong>Can't create pattern?</strong> Ensure all required fields are completed</p>
+    </div>
+    <p>For further assistance, contact your system administrator.</p>
+  </div>
+      </div>
+    </div>
+  </ng-container>
+</nz-modal>
